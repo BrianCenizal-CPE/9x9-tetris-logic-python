@@ -1,7 +1,10 @@
 import os
 import time
 import msvcrt
+import random
+
 import shapes
+
 
 # WORLD SETUP (9x9)
 playfield = []
@@ -9,6 +12,7 @@ for i in range(9):
     playfield.append([0, 0, 0, 0, 0, 0, 0, 0, 0])
 
 #GAME STATE
+active_shape_library = random.choice(shapes.ALL_SHAPES) #Initial Shape Pick
 anchor_y = 1
 anchor_x = 4
 current_state = 0 # 0, 1, 2, or 3
@@ -64,7 +68,7 @@ while not game_over:
             key_pressed = key
 
     #Get the current shape state BEFORE handling input
-    active_shape = shapes.L_STATES[current_state]
+    active_shape = active_shape_library[current_state]
 
     if key_pressed:
         if key_pressed == b'K': # Left
@@ -75,14 +79,14 @@ while not game_over:
                 anchor_x += 1
         elif key_pressed == b'H': # Rotate (Up)
             next_s = (current_state + 1) % 4
-            if can_it_fit(shapes.L_STATES[next_s], anchor_y, anchor_x):
+            if can_it_fit(active_shape_library[next_s], anchor_y, anchor_x):
                 current_state = next_s
         elif key_pressed in [b'q', b'Q']:
             break
 
     #GRAVITY TICK (Checks Down)
     #update active_shape here again in case it just rotated
-    active_shape = shapes.L_STATES[current_state]
+    active_shape = active_shape_library[current_state]
 
     #Use can_it_fit to look one block down
     if can_it_fit(active_shape, anchor_y + 1, anchor_x):
@@ -116,7 +120,7 @@ while not game_over:
                 playfield.insert(0, [0,0,0,0,0,0,0,0,0])
 
         #SHUT OFF CHECK
-        spawn_shape = shapes.L_STATES[0]
+        spawn_shape = active_shape_library[0] 
         for r in range(3):
             for c in range(3):
                 if spawn_shape[r][c] == 2:
@@ -129,6 +133,7 @@ while not game_over:
             break
 
         # RESET
+        active_shape_library = random.choice(shapes.ALL_SHAPES) #Pick a new random shape
         anchor_y = 1
         anchor_x = 4
         current_state = 0
