@@ -22,4 +22,4 @@ A robust, from-scratch Tetris engine built entirely using Python lists and pure 
 1. Ensure you are on a Windows environment (for `msvcrt` support).
 2. Download both `main.py` and `shapes.py` into the same folder.
 3. Run the game via terminal:
-   python main.py
+   `python main.py`
