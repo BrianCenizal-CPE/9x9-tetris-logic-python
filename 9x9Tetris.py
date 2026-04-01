@@ -1,10 +1,14 @@
-#PSEUDO CODE FOR THE TETRIS GAME
+#Prototype for the 9x9 tetris game
+import os
+import time
+import msvcrt
+
+#WORLD SETUP (9X9)
 playfield = []
 for i in range(9):
-    row = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    playfield.append(row)
+    playfield.append([0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-
+#SHAPE SETUP (3X3)
 shape_L = [
     [0, 2, 0],
     [0, 2, 0],
@@ -12,46 +16,113 @@ shape_L = [
 ]
 shape_L_bottoms = [[2, 1], [2, 2]]
 
-spawn_y = 1
-spawn_x = 4
-
+#GAME STATE
 anchor_y = 1
 anchor_x = 4
+solid = False
+lock_ticks = 0
+game_over = False
 
-its a loop bish lets say tick is like half a second
-solid=false
-if edge == 0 and solid==false, make sensor 5 wide and 4 tall
-  have shape-L copy its 2s using +1 on x and +0 on y(i think) where sensors coord value of 0s may or may not turn into the shape-ls coord value of 2s  
-  #this leave us with permanent empty left and right and bottom spaces whatever 3x3 shape you give, etc
-  then the sensing blocks would be all left and right blocks, while refering to the shapeLbottoms +1 on y to be the active sensor and checker, etc...
-  anchor coordinates will be dead center 2x,1y of sensor
-elif edge != 0 and solid==false
-  make sensor 4 wide and 4 tall
-  if edge = 1
-    have shape-L copy its 2s using +1 on x and +0 on y and the usual
-    anchor coordinates would be  2x,1y
-  else
-    have shape-l copy its 2s using +0 on x and +0 also on y  
-    anchor coordinates would be  1x,1y
-  elif solid==true
-    none
+def draw():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print("9x9 TETRIS - USE ARROW KEYS TO MOVE (Q TO QUIT)")
+    print("---------------------------")
+    for row in playfield:
+        line = ""
+        for cell in row:
+            if cell == 1: line += "■ " 
+            elif cell == 2: line += "▣ " 
+            else: line += "□ "          
+        print(line)
+    print("---------------------------")
 
-everytick(predeterminedtime), anchor_y -= 1 , every tick * 2
-only if bottom sensor is not screaming ofcourse
-every left press, anchor_x -=1
-every right press, anchor +=1
-if anchor_x-1 == 1 edge = -1, ignore left press
-if anchor_x+1 == 8 edge = 1, ignore right press
-else edge = 0
-#in such an "edgy" scenario im thinking of just turning the sensor to a 4x4 to fit, etc..
-anyways if 2-6 ticks happen while the bottom sensor triggered without stopping, solid=true
-if solid==false
-  anyways everytick all the 2s vanish and replace by 0 while 1s stay... while sensor replace the proper position of two
-  anyways sensor finally checks that if bottom sensors are 1 and it stops falling down for a couple of tick up until it considers as solidified, etc
-  anyways left and right sensors check if x-1 and pressing left if the projection of the L-shape after the tick would have values that isnt 0 on the values that 2 would spawn on, etc(will start the check befor ethe tick even happens, so its future gaming lmao)
-  same goes for x+1 and pressing right
-    they get blocked or something, etc...
-elif solid==true
-   all 2 turns to 1 in the respective coordinates like from the reference anchor and boom boom boom
-   check if occupied horizontal line of the L-shape when solidified all has 1 value, etc... then delete said horizontal list and then append a new list as the new 0 while the rest adjust, etc
-   anchorx&y=spawnx&y
+#REAL-TIME GAME LOOP
+while not game_over:
+    #VANISH THE 2s
+    for r in range(9):
+        for c in range(9):
+            if playfield[r][c] == 2:
+                playfield[r][c] = 0
+
+    #INPUT HANDLING (the msvcrt logic)
+    if msvcrt.kbhit(): #if a key is waiting in the buffer
+        key = msvcrt.getch() #grab the key
+        
+        if key == b'\xe0' or key == b'\x00':
+            key = msvcrt.getch() # Read the second part of the arrow key
+            if key == b'K' and anchor_x > 1: # 'K' is Left Arrow
+                anchor_x -= 1
+            elif key == b'M' and anchor_x < 7: # 'M' is Right Arrow
+                anchor_x += 1
+        
+        elif key == b'q' or key == b'Q': # Quit key
+            break
+
+    #FUTURE GAMING (Preemptive Collision Check)
+    collision_detected = False
+    for point in shape_L_bottoms:
+        check_y = anchor_y + point[0] 
+        check_x = (anchor_x - 1) + point[1]
+
+        if check_y > 8: 
+            collision_detected = True
+            break
+        elif playfield[check_y][check_x] == 1: 
+            collision_detected = True
+            break
+
+    #MOVEMENT/SOLIDIFY LOGIC
+    if collision_detected:
+        lock_ticks += 1
+        if lock_ticks >= 3: 
+            solid = True
+    else:
+        anchor_y += 1 
+        lock_ticks = 0
+
+    #INHERITANCE
+    if not solid:
+        for r in range(3):
+            for c in range(3):
+                if shape_L[r][c] == 2:
+                    py = (anchor_y - 1) + r
+                    px = (anchor_x - 1) + c
+                    playfield[py][px] = 2
+    else:
+        #BOOM BOOM BOOM (Solidify)
+        for r in range(3):
+            for c in range(3):
+                if shape_L[r][c] == 2:
+                    py = (anchor_y - 1) + r
+                    px = (anchor_x - 1) + c
+                    playfield[py][px] = 1
+        
+        #LINE CLEAR
+        for r in range(9):
+            if 0 not in playfield[r]:
+                playfield.pop(r)
+                playfield.insert(0, [0,0,0,0,0,0,0,0,0])
+
+        #SHUT OFF CHECK (Future Gaming for Spawn)
+        for r in range(3):
+            for c in range(3):
+                if shape_L[r][c] == 2:
+                    target_y = (1 - 1) + r
+                    target_x = (4 - 1) + c
+                    if playfield[target_y][target_x] == 1:
+                        game_over = True
+        
+        if game_over:
+            draw()
+            print("!!! SHUT OFF: SPAWN BLOCKED !!!")
+            break
+
+        #RESET AFTER SOLIDIFY
+        anchor_y = 1
+        anchor_x = 4
+        solid = False
+        lock_ticks = 0
+
+    #RENDER
+    draw()
+    time.sleep(0.15)
