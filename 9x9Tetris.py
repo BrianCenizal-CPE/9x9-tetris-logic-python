@@ -37,6 +37,7 @@ elif edge != 0 and solid==false
     none
 
 everytick(predeterminedtime), anchor_y -= 1 , every tick * 2
+only if bottom sensor is not screaming ofcourse
 every left press, anchor_x -=1
 every right press, anchor +=1
 if anchor_x-1 == 1 edge = -1, ignore left press
